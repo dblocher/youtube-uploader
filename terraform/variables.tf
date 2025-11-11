@@ -5,9 +5,9 @@ variable "aws_region" {
 }
 
 variable "aws_profile" {
-  description = "AWS CLI profile to use (for SSO)"
+  description = "AWS CLI profile to use (for SSO). Leave empty to use AWS_PROFILE env var or default credentials."
   type        = string
-  default     = "default"
+  default     = ""
 }
 
 variable "project_name" {

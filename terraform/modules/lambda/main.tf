@@ -101,12 +101,16 @@ resource "aws_lambda_function" "functions" {
     }
   }
 
-  # For zip deployments - placeholder (will be updated by CI/CD or manual deployment)
-  filename         = each.value.use_container_image ? null : "${path.module}/dummy.zip"
-  source_code_hash = each.value.use_container_image ? null : filebase64sha256("${path.module}/dummy.zip")
+  # For zip deployments - use dummy zip as placeholder
+  filename         = each.value.use_container_image ? null : data.archive_file.lambda_zip[each.key].output_path
+  source_code_hash = each.value.use_container_image ? null : data.archive_file.lambda_zip[each.key].output_base64sha256
+
+  # Handler and runtime for ZIP packages
+  handler = each.value.use_container_image ? null : "handler.lambda_handler"
+  runtime = each.value.use_container_image ? null : "python3.11"
 
   # Image URI for container-based deployments (to be updated)
-  image_uri = each.value.use_container_image ? var.ecr_image_uris[each.key] : null
+  image_uri = each.value.use_container_image ? lookup(var.ecr_image_uris, each.key, null) : null
 
   timeout     = each.value.timeout
   memory_size = each.value.memory_size
@@ -125,9 +129,21 @@ resource "aws_lambda_function" "functions" {
   tags = var.tags
 }
 
-# Create dummy zip file for non-container Lambda functions
-resource "null_resource" "create_dummy_zip" {
-  provisioner "local-exec" {
-    command = "echo 'def lambda_handler(event, context): pass' > /tmp/dummy.py && cd /tmp && zip ${path.module}/dummy.zip dummy.py"
-  }
+# Create dummy Python file for non-container Lambda functions
+resource "local_file" "dummy_lambda" {
+  for_each = { for k, v in var.lambda_functions : k => v if !v.use_container_image }
+
+  content  = "def lambda_handler(event, context):\n    return {'statusCode': 200, 'body': 'Placeholder function'}\n"
+  filename = "${path.module}/dummy_${each.key}.py"
+}
+
+# Create zip archive for non-container Lambda functions
+data "archive_file" "lambda_zip" {
+  for_each = { for k, v in var.lambda_functions : k => v if !v.use_container_image }
+
+  type        = "zip"
+  source_file = local_file.dummy_lambda[each.key].filename
+  output_path = "${path.module}/dummy_${each.key}.zip"
+
+  depends_on = [local_file.dummy_lambda]
 }

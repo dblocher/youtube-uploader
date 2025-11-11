@@ -10,12 +10,21 @@ terraform {
       source  = "hashicorp/null"
       version = "~> 3.0"
     }
+    archive = {
+      source  = "hashicorp/archive"
+      version = "~> 2.0"
+    }
+    local = {
+      source  = "hashicorp/local"
+      version = "~> 2.0"
+    }
   }
 }
 
 provider "aws" {
-  region  = var.aws_region
-  profile = var.aws_profile  # Use SSO profile from variable
+  region = var.aws_region
+  # Only set profile if explicitly provided (allows env vars to take precedence)
+  profile = var.aws_profile != "" ? var.aws_profile : null
 
   default_tags {
     tags = {
@@ -68,28 +77,33 @@ module "lambda" {
   ecr_image_uris      = var.ecr_image_uris
   tags                = var.tags
 
-  lambda_functions = {
-    transcript_generator = {
-      timeout             = 900  # 15 minutes for video processing
-      memory_size         = 3008
-      use_container_image = false
-      environment_variables = {
-        BEDROCK_MODEL_ID = "anthropic.claude-3-5-sonnet-20241022-v2:0"
+  lambda_functions = merge(
+    {
+      transcript_generator = {
+        timeout             = 900  # 15 minutes for video processing
+        memory_size         = 3008
+        use_container_image = false
+        environment_variables = {
+          BEDROCK_MODEL_ID = "anthropic.claude-3-5-sonnet-20241022-v2:0"
+        }
       }
-    }
-    video_uploader = {
-      timeout             = 900  # 15 minutes for YouTube upload
-      memory_size         = 2048
-      use_container_image = true
-      environment_variables = {}
-    }
-    github_sync = {
-      timeout             = 300  # 5 minutes
-      memory_size         = 512
-      use_container_image = false
-      environment_variables = {}
-    }
-  }
+      github_sync = {
+        timeout             = 300  # 5 minutes
+        memory_size         = 512
+        use_container_image = false
+        environment_variables = {}
+      }
+    },
+    # Only include video_uploader if ECR image URI is provided
+    contains(keys(var.ecr_image_uris), "video_uploader") ? {
+      video_uploader = {
+        timeout             = 900  # 15 minutes for YouTube upload
+        memory_size         = 2048
+        use_container_image = true
+        environment_variables = {}
+      }
+    } : {}
+  )
 }
 
 # Step Functions state machine

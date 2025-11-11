@@ -1,6 +1,8 @@
 # AWS Configuration
-aws_region  = "us-east-1"
-aws_profile = "default"  # Your AWS SSO profile name
+aws_region = "us-east-1"
+# aws_profile is set automatically by terraform.sh script
+# If you want to manually set it, uncomment and change the profile name:
+# aws_profile = "your-profile-name"
 
 # Project Configuration
 project_name = "youtube-uploader"

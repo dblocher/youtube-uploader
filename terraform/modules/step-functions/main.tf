@@ -125,7 +125,7 @@ resource "aws_sfn_state_machine" "video_processing" {
         Type     = "Task"
         Resource = "arn:aws:states:::lambda:invoke"
         Parameters = {
-          FunctionName = var.lambda_function_arns["video_uploader"]
+          FunctionName = lookup(var.lambda_function_arns, "video_uploader", "arn:aws:lambda:us-east-1:000000000000:function:placeholder")
           Payload = {
             "s3_bucket.$"       = "$.detail.bucket.name"
             "s3_key.$"          = "$.detail.object.key"
