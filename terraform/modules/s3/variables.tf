@@ -3,16 +3,16 @@ variable "bucket_name" {
   type        = string
 }
 
-variable "enable_lifecycle_policy" {
-  description = "Enable lifecycle policy to automatically delete old videos"
+variable "enable_deep_archive" {
+  description = "Enable deep archive transition for long-term storage"
   type        = bool
   default     = false
 }
 
-variable "lifecycle_expiration_days" {
-  description = "Number of days after which to expire objects"
+variable "deep_archive_days" {
+  description = "Number of days after which to move objects to Deep Archive"
   type        = number
-  default     = 365
+  default     = 180
 }
 
 variable "tags" {

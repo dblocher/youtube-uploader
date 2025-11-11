@@ -13,9 +13,12 @@ dynamodb_table_name = "youtube-uploader-state"
 # User IDs (list of tenant identifiers)
 user_ids = ["default"]
 
-# Lifecycle Policy (optional)
-enable_lifecycle_policy   = false
-lifecycle_expiration_days = 365
+# S3 Intelligent-Tiering & Archiving
+# Intelligent-Tiering is ALWAYS enabled (automatically optimizes costs)
+# Objects transition to Intelligent-Tiering immediately (day 0)
+# Optional: Enable Deep Archive for long-term cold storage
+enable_deep_archive = false  # Set to true to enable Deep Archive after X days
+deep_archive_days   = 180    # Move to Deep Archive after 180 days (if enabled)
 
 # ECR Image URIs (update after building Docker images)
 # ecr_image_uris = {

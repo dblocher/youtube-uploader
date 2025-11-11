@@ -27,16 +27,16 @@ variable "user_ids" {
   default     = ["default"]
 }
 
-variable "enable_lifecycle_policy" {
-  description = "Enable S3 lifecycle policy to automatically delete old videos"
+variable "enable_deep_archive" {
+  description = "Enable deep archive transition for long-term storage (optional, default: false)"
   type        = bool
   default     = false
 }
 
-variable "lifecycle_expiration_days" {
-  description = "Number of days after which to expire S3 objects"
+variable "deep_archive_days" {
+  description = "Number of days after which to move objects to Deep Archive (default: 180 days)"
   type        = number
-  default     = 365
+  default     = 180
 }
 
 variable "ecr_image_uris" {

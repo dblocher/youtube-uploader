@@ -39,10 +39,10 @@ module "dynamodb" {
 module "s3" {
   source = "./modules/s3"
 
-  bucket_name                = var.s3_bucket_name
-  enable_lifecycle_policy    = var.enable_lifecycle_policy
-  lifecycle_expiration_days  = var.lifecycle_expiration_days
-  tags                       = var.tags
+  bucket_name         = var.s3_bucket_name
+  enable_deep_archive = var.enable_deep_archive
+  deep_archive_days   = var.deep_archive_days
+  tags                = var.tags
 }
 
 # SSM Parameters for secrets

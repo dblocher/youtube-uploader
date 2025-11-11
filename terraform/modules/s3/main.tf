@@ -37,25 +37,49 @@ resource "aws_s3_bucket_notification" "video_uploads" {
   eventbridge = true
 }
 
-# Optional: Lifecycle policy for old videos
+# Lifecycle policy with Intelligent-Tiering
 resource "aws_s3_bucket_lifecycle_configuration" "video_uploads" {
-  count  = var.enable_lifecycle_policy ? 1 : 0
   bucket = aws_s3_bucket.video_uploads.id
 
+  # Intelligent-Tiering for video files
   rule {
-    id     = "delete-old-videos"
+    id     = "intelligent-tiering-videos"
     status = "Enabled"
 
     filter {
       prefix = "*/videos/"
     }
 
-    expiration {
-      days = var.lifecycle_expiration_days
+    transition {
+      days          = 0
+      storage_class = "INTELLIGENT_TIERING"
+    }
+
+    noncurrent_version_transition {
+      noncurrent_days = 30
+      storage_class   = "GLACIER_IR"
     }
 
     noncurrent_version_expiration {
-      noncurrent_days = 30
+      noncurrent_days = 90
+    }
+  }
+
+  # Optional: Archive old videos to Glacier Deep Archive
+  dynamic "rule" {
+    for_each = var.enable_deep_archive ? [1] : []
+    content {
+      id     = "archive-old-videos"
+      status = "Enabled"
+
+      filter {
+        prefix = "*/videos/"
+      }
+
+      transition {
+        days          = var.deep_archive_days
+        storage_class = "DEEP_ARCHIVE"
+      }
     }
   }
 }
