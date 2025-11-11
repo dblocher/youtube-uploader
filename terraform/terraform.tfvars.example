@@ -1,0 +1,29 @@
+# AWS Configuration
+aws_region = "us-east-1"
+
+# Project Configuration
+project_name = "youtube-uploader"
+
+# S3 Bucket (must be globally unique)
+s3_bucket_name = "your-unique-bucket-name-youtube-uploader"
+
+# DynamoDB Table
+dynamodb_table_name = "youtube-uploader-state"
+
+# User IDs (list of tenant identifiers)
+user_ids = ["default"]
+
+# Lifecycle Policy (optional)
+enable_lifecycle_policy   = false
+lifecycle_expiration_days = 365
+
+# ECR Image URIs (update after building Docker images)
+# ecr_image_uris = {
+#   video_uploader = "123456789012.dkr.ecr.us-east-1.amazonaws.com/youtube-uploader-video-uploader:latest"
+# }
+
+# Additional Tags
+tags = {
+  Environment = "production"
+  Owner       = "your-name"
+}

@@ -1,29 +1,63 @@
-# Dependencies
-node_modules/
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
 venv/
 env/
+ENV/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
+
+# Terraform
+*.tfstate
+*.tfstate.*
+*.tfvars
+!terraform.tfvars.example
+.terraform/
+.terraform.lock.hcl
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# AWS
+.aws-sam/
+samconfig.toml
 
 # Environment variables
 .env
 .env.local
+*.pem
+*.key
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-
-# OS
 .DS_Store
 Thumbs.db
 
-# Build outputs
-dist/
-build/
-*.egg-info/
+# CLI Configuration
+.youtube-uploader/
+
+# Docker
+*.tar
 
 # Logs
 *.log
 logs/
+
+# Test files
+test_videos/
+sample_data/
