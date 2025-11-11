@@ -124,10 +124,11 @@ class S3Uploader:
         video_id: str,
         video_path: Path,
         metadata: dict,
-        thumbnail_path: Optional[Path] = None
+        thumbnail_path: Optional[Path] = None,
+        audio_path: Optional[Path] = None
     ) -> dict:
         """
-        Upload complete video package (video, metadata, optional thumbnail)
+        Upload complete video package (video, audio, metadata, optional thumbnail)
 
         Args:
             user_id: User ID
@@ -136,6 +137,7 @@ class S3Uploader:
             video_path: Path to video file
             metadata: Video metadata dictionary
             thumbnail_path: Optional path to thumbnail
+            audio_path: Optional path to extracted audio file
 
         Returns:
             Dictionary with S3 URIs of uploaded files
@@ -154,6 +156,17 @@ class S3Uploader:
             content_type='video/mp4',
             show_progress=True
         )
+
+        # Upload audio file if provided
+        if audio_path:
+            audio_key = f"{base_path}/audio.mp3"
+            print(f"\nUploading audio to S3...")
+            uploaded_files['audio'] = self.upload_file(
+                audio_path,
+                audio_key,
+                content_type='audio/mpeg',
+                show_progress=False
+            )
 
         # Upload thumbnail if provided
         if thumbnail_path:

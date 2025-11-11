@@ -10,6 +10,7 @@ from rich.panel import Panel
 from .config import Config, ConfigManager
 from .metadata import collect_metadata_interactive
 from .s3_client import S3Uploader
+from .audio_extractor import extract_audio, check_ffmpeg_installed
 
 
 console = Console()
@@ -123,6 +124,25 @@ def upload(video_file: Path, thumbnail: Path = None):
     video_id = str(uuid.uuid4())
     console.print(f"\n[cyan]Generated Video ID: {video_id}[/cyan]")
 
+    # Extract audio from video
+    audio_path = None
+    if check_ffmpeg_installed():
+        try:
+            console.print("\n[bold yellow]Extracting audio from video...[/bold yellow]")
+            audio_path = extract_audio(video_file)
+            console.print("[green]✓ Audio extraction complete[/green]")
+        except Exception as e:
+            console.print(f"[yellow]⚠ Audio extraction failed: {str(e)}[/yellow]")
+            console.print("[yellow]Continuing without pre-extracted audio (Lambda will handle it)[/yellow]")
+            audio_path = None
+    else:
+        console.print("\n[yellow]⚠ ffmpeg not found - skipping audio extraction[/yellow]")
+        console.print("[yellow]Lambda will extract audio (slower, higher cost)[/yellow]")
+        console.print("\nTo enable local audio extraction, install ffmpeg:")
+        console.print("  macOS: brew install ffmpeg")
+        console.print("  Ubuntu/Debian: sudo apt-get install ffmpeg")
+        console.print("  Windows: Download from https://ffmpeg.org/download.html\n")
+
     # Initialize S3 uploader
     try:
         uploader = S3Uploader(config.s3_bucket, config.aws_profile, config.aws_region)
@@ -140,7 +160,8 @@ def upload(video_file: Path, thumbnail: Path = None):
             video_id=video_id,
             video_path=video_file,
             metadata=metadata.dict(),
-            thumbnail_path=thumbnail
+            thumbnail_path=thumbnail,
+            audio_path=audio_path
         )
 
         console.print("\n[bold green]✓ Upload completed successfully![/bold green]")
@@ -155,6 +176,13 @@ def upload(video_file: Path, thumbnail: Path = None):
     except Exception as e:
         console.print(f"\n[red]Upload failed: {str(e)}[/red]")
         return
+    finally:
+        # Clean up temporary audio file
+        if audio_path and audio_path.exists():
+            try:
+                audio_path.unlink()
+            except Exception:
+                pass
 
 
 @cli.command()

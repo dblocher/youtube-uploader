@@ -28,42 +28,48 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
     # Construct S3 paths
     video_prefix = f"{user_id}/{channel_id}/videos/{video_id}"
-    video_key = f"{video_prefix}/video.mp4"  # Assuming video.mp4, adjust as needed
+    audio_key = f"{video_prefix}/audio.mp3"
+    video_key = f"{video_prefix}/video.mp4"
 
-    print(f"Processing transcript for video: {video_key}")
+    print(f"Processing transcript for video: {video_id}")
 
     s3 = boto3.client('s3')
-    bedrock_runtime = boto3.client('bedrock-runtime')
+    audio_path = None
+    video_path = None
 
     try:
-        # Download video file to temp directory
-        with tempfile.NamedTemporaryFile(suffix='.mp4', delete=False) as video_file:
-            video_path = video_file.name
-            print(f"Downloading video from S3: {s3_bucket}/{video_key}")
-            s3.download_file(s3_bucket, video_key, video_path)
+        # Check if pre-extracted audio exists (uploaded by CLI)
+        try:
+            print(f"Checking for pre-extracted audio: {audio_key}")
+            s3.head_object(Bucket=s3_bucket, Key=audio_key)
 
-        # Extract audio from video using ffmpeg
-        audio_path = video_path.replace('.mp4', '.mp3')
-        print("Extracting audio from video")
-        subprocess.run([
-            'ffmpeg', '-i', video_path,
-            '-vn', '-acodec', 'mp3',
-            '-ar', '16000', '-ac', '1',
-            audio_path
-        ], check=True, capture_output=True)
+            # Audio file exists, download it
+            with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as audio_file:
+                audio_path = audio_file.name
+                print(f"Downloading pre-extracted audio from S3")
+                s3.download_file(s3_bucket, audio_key, audio_path)
 
-        # Get video duration for timestamp generation
-        duration_result = subprocess.run([
-            'ffprobe', '-v', 'error',
-            '-show_entries', 'format=duration',
-            '-of', 'default=noprint_wrappers=1:nokey=1',
-            video_path
-        ], capture_output=True, text=True, check=True)
-        video_duration = float(duration_result.stdout.strip())
+            print("✓ Using pre-extracted audio (faster, lower cost)")
 
-        # Read audio file and convert to base64
-        with open(audio_path, 'rb') as audio_file:
-            audio_data = audio_file.read()
+        except s3.exceptions.NoSuchKey:
+            # Audio doesn't exist, need to extract from video
+            print("⚠ No pre-extracted audio found, extracting from video (slower)")
+
+            # Download video file
+            with tempfile.NamedTemporaryFile(suffix='.mp4', delete=False) as video_file:
+                video_path = video_file.name
+                print(f"Downloading video from S3: {s3_bucket}/{video_key}")
+                s3.download_file(s3_bucket, video_key, video_path)
+
+            # Extract audio from video using ffmpeg
+            audio_path = video_path.replace('.mp4', '.mp3')
+            print("Extracting audio from video")
+            subprocess.run([
+                'ffmpeg', '-i', video_path,
+                '-vn', '-acodec', 'mp3',
+                '-ar', '16000', '-ac', '1',
+                audio_path
+            ], check=True, capture_output=True)
 
         # Call Amazon Bedrock to generate transcript
         # Note: This is a simplified example. Bedrock may require chunking for long audio
@@ -153,9 +159,9 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
     finally:
         # Clean up local temp files
-        if 'video_path' in locals() and os.path.exists(video_path):
+        if video_path and os.path.exists(video_path):
             os.remove(video_path)
-        if 'audio_path' in locals() and os.path.exists(audio_path):
+        if audio_path and os.path.exists(audio_path):
             os.remove(audio_path)
 
 
